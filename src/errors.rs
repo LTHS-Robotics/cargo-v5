@@ -17,8 +17,16 @@ pub enum CliError {
     IoError(#[from] std::io::Error),
 
     #[error(transparent)]
+    #[diagnostic(code(cargo_v5::generic_error))]
+    GenericError(#[from] vex_v5_serial::generic::GenericError),
+
+    #[error(transparent)]
     #[diagnostic(code(cargo_v5::serial_error))]
     SerialError(#[from] vex_v5_serial::serial::SerialError),
+
+    #[error(transparent)]
+    #[diagnostic(code(cargo_v5::bluetooth_error))]
+    BluetoothError(#[from] vex_v5_serial::bluetooth::BluetoothError),
 
     #[error(transparent)]
     #[diagnostic(code(cargo_v5::cdc2_nack))]
