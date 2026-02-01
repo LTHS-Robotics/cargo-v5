@@ -1,22 +1,20 @@
 use std::{path::PathBuf, str::FromStr, time::Duration};
 
 use vex_v5_serial::{
-    Connection,
-    protocol::{
+    Connection, generic::GenericConnection, protocol::{
         FixedString,
         cdc2::file::{
             FileErasePacket, FileErasePayload, FileEraseReplyPacket, FileExitAction,
             FileTransferExitPacket, FileTransferExitReplyPacket,
         },
-    },
-    serial::{SerialConnection, SerialError},
+    }, serial::SerialError
 };
 
 use crate::errors::CliError;
 
 use super::cat::vendor_from_prefix;
 
-pub async fn rm(connection: &mut SerialConnection, file: PathBuf) -> Result<(), CliError> {
+pub async fn rm(connection: &mut GenericConnection, file: PathBuf) -> Result<(), CliError> {
     let vendor = vendor_from_prefix(if let Some(parent) = file.parent() {
         parent.to_str().unwrap()
     } else {

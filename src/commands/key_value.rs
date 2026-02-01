@@ -1,16 +1,16 @@
 use std::time::Duration;
 use vex_v5_serial::Connection;
+use vex_v5_serial::generic::GenericConnection;
 use vex_v5_serial::protocol::FixedString;
 use vex_v5_serial::protocol::cdc2::system::{
     KeyValueLoadPacket, KeyValueLoadReplyPacket, KeyValueSavePacket, KeyValueSavePayload,
     KeyValueSaveReplyPacket,
 };
-use vex_v5_serial::serial::SerialConnection;
 
 use crate::errors::CliError;
 
 pub async fn kv_set(
-    connection: &mut SerialConnection,
+    connection: &mut GenericConnection,
     key: &str,
     value: &str,
 ) -> Result<(), CliError> {
@@ -29,7 +29,7 @@ pub async fn kv_set(
     Ok(())
 }
 
-pub async fn kv_get(connection: &mut SerialConnection, key: &str) -> Result<String, CliError> {
+pub async fn kv_get(connection: &mut GenericConnection, key: &str) -> Result<String, CliError> {
     Ok(connection
         .handshake::<KeyValueLoadReplyPacket>(
             Duration::from_millis(500),

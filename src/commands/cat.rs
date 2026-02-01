@@ -2,13 +2,10 @@ use std::{path::PathBuf, str::FromStr};
 
 use tokio::io::{AsyncWriteExt, stdout};
 use vex_v5_serial::{
-    Connection,
-    commands::file::DownloadFile,
-    protocol::{
+    Connection, commands::file::DownloadFile, generic::GenericConnection, protocol::{
         FixedString,
         cdc2::file::{FileTransferTarget, FileVendor},
-    },
-    serial::{SerialConnection, SerialError},
+    }, serial::SerialError
 };
 
 use crate::errors::CliError;
@@ -29,7 +26,7 @@ pub fn vendor_from_prefix(prefix: &str) -> FileVendor {
     }
 }
 
-pub async fn cat(connection: &mut SerialConnection, file: PathBuf) -> Result<(), CliError> {
+pub async fn cat(connection: &mut GenericConnection, file: PathBuf) -> Result<(), CliError> {
     let vendor = if let Some(parent) = file.parent() {
         vendor_from_prefix(parent.to_str().unwrap())
     } else {

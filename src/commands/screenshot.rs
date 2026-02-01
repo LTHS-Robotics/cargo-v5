@@ -9,23 +9,20 @@ use indicatif::{ProgressBar, ProgressStyle};
 use log::info;
 use tokio::sync::Mutex;
 use vex_v5_serial::{
-    Connection,
-    commands::file::DownloadFile,
-    protocol::{
+    Connection, commands::file::DownloadFile, generic::GenericConnection, protocol::{
         FixedString,
         cdc2::{
             file::{FileTransferTarget, FileVendor},
             system::{ScreenCapturePacket, ScreenCapturePayload, ScreenCaptureReplyPacket},
         },
     },
-    serial::SerialConnection,
 };
 
 use crate::errors::CliError;
 
 use super::upload::PROGRESS_CHARS;
 
-pub async fn screenshot(connection: &mut SerialConnection) -> Result<(), CliError> {
+pub async fn screenshot(connection: &mut GenericConnection) -> Result<(), CliError> {
     let timestamp = Arc::new(Mutex::new(None));
     let progress = Arc::new(Mutex::new(
         ProgressBar::new(10000)

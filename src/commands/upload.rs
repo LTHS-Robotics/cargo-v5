@@ -16,9 +16,7 @@ use std::{
 };
 
 use vex_v5_serial::{
-    Connection,
-    commands::file::{LinkedFile, USER_PROGRAM_LOAD_ADDR, UploadFile, j2000_timestamp},
-    protocol::{
+    Connection, commands::file::{LinkedFile, USER_PROGRAM_LOAD_ADDR, UploadFile, j2000_timestamp}, generic::{GenericConnection, GenericError}, protocol::{
         FixedString, VEX_CRC32, Version,
         cdc2::{
             Cdc2Ack,
@@ -28,8 +26,7 @@ use vex_v5_serial::{
                 FileTransferTarget, FileVendor,
             },
         },
-    },
-    serial::{SerialConnection, SerialError},
+    }
 };
 
 use crate::{
@@ -157,7 +154,7 @@ const DIFFERENTIAL_UPLOAD_MAX_SIZE: usize = 0x200000;
 
 /// Upload a program to the brain.
 pub async fn upload_program(
-    connection: &mut SerialConnection,
+    connection: &mut GenericConnection,
     path: &Path,
     after: AfterUpload,
     slot: u8,
@@ -535,10 +532,10 @@ fn build_patch(old: &[u8], new: &[u8]) -> Vec<u8> {
 }
 
 async fn brain_file_metadata(
-    connection: &mut SerialConnection,
+    connection: &mut GenericConnection,
     file_name: FixedString<23>,
     vendor: FileVendor,
-) -> Result<Option<FileMetadataReplyPayload>, SerialError> {
+) -> Result<Option<FileMetadataReplyPayload>, GenericError> {
     let reply = connection
         .handshake::<FileMetadataReplyPacket>(
             Duration::from_millis(1000),
@@ -554,7 +551,7 @@ async fn brain_file_metadata(
     match reply.payload {
         Ok(payload) => Ok(payload),
         Err(Cdc2Ack::NackProgramFile) => Ok(None),
-        Err(nack) => Err(SerialError::Nack(nack)),
+        Err(nack) => Err(GenericError::Nack(nack)),
     }
 }
 
@@ -595,7 +592,7 @@ pub async fn upload(
         cold,
     }: UploadOpts,
     after: AfterUpload,
-) -> miette::Result<SerialConnection> {
+) -> miette::Result<GenericConnection> {
     // Try to open a serialport in the background while we build.
     let (mut connection, (artifact, package_id)) = tokio::try_join!(
         async {
@@ -604,7 +601,7 @@ pub async fn upload(
             // Switch the radio to the download channel if the controller is wireless.
             switch_to_download_channel(&mut connection).await?;
 
-            Ok::<SerialConnection, CliError>(connection)
+            Ok::<GenericConnection, CliError>(connection)
         },
         async {
             // Get the build artifact we'll be uploading with.

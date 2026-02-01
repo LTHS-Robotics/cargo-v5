@@ -1,17 +1,17 @@
 use std::io::{self, Write};
 use std::time::Duration;
 
+use vex_v5_serial::generic::GenericConnection;
 use vex_v5_serial::{
     Connection,
     protocol::cdc2::system::{DeviceStatusPacket, DeviceStatusReplyPacket},
-    serial::SerialConnection,
 };
 
 use tabwriter::TabWriter;
 
 use crate::errors::CliError;
 
-pub async fn devices(connection: &mut SerialConnection) -> Result<(), CliError> {
+pub async fn devices(connection: &mut GenericConnection) -> Result<(), CliError> {
     let mut tw = TabWriter::new(io::stdout());
 
     let status = connection

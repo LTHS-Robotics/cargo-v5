@@ -1,4 +1,5 @@
 use chrono::{TimeZone, Utc};
+use vex_v5_serial::generic::GenericConnection;
 use std::io::{self, Write};
 use std::time::Duration;
 
@@ -13,7 +14,6 @@ use vex_v5_serial::{
             ExtensionType, FileVendor,
         },
     },
-    serial::SerialConnection,
 };
 
 use humansize::{BINARY, format_size};
@@ -37,7 +37,7 @@ fn vendor_prefix(vid: FileVendor) -> &'static str {
     }
 }
 
-pub async fn dir(connection: &mut SerialConnection) -> Result<(), CliError> {
+pub async fn dir(connection: &mut GenericConnection) -> Result<(), CliError> {
     let mut tw = TabWriter::new(io::stdout());
 
     const USEFUL_VIDS: [FileVendor; 11] = [

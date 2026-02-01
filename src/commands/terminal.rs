@@ -7,9 +7,9 @@ use tokio::{
     select,
     time::sleep,
 };
-use vex_v5_serial::{Connection, serial::SerialConnection};
+use vex_v5_serial::{Connection, generic::GenericConnection};
 
-pub async fn terminal(connection: &mut SerialConnection, logger: &mut LoggerHandle) -> ! {
+pub async fn terminal(connection: &mut GenericConnection, logger: &mut LoggerHandle) -> ! {
     info!("Started terminal.");
 
     logger.push_temp_spec(LogSpecification::off());

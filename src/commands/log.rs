@@ -2,17 +2,17 @@ use std::io::{self, Write};
 use std::num::NonZeroU32;
 use std::time::Duration;
 use tabwriter::{Alignment, TabWriter};
+use vex_v5_serial::generic::GenericConnection;
 use vex_v5_serial::{
     Connection,
     protocol::cdc2::system::{LogReadPacket, LogReadPayload, LogReadReplyPacket},
-    serial::SerialConnection,
 };
 
 use crate::errors::CliError;
 
 const MAX_LOGS_PER_PAGE: u32 = 254;
 
-pub async fn log(connection: &mut SerialConnection, page: NonZeroU32) -> Result<(), CliError> {
+pub async fn log(connection: &mut GenericConnection, page: NonZeroU32) -> Result<(), CliError> {
     let mut tw = TabWriter::new(io::stdout())
         .tab_indent(false)
         .padding(1)

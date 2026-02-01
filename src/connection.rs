@@ -4,8 +4,7 @@ use log::info;
 use std::time::Duration;
 use tokio::{task::spawn_blocking, time::sleep};
 use vex_v5_serial::{
-    Connection,
-    protocol::{
+    Connection, bluetooth, generic::{GenericConnection, GenericError}, protocol::{
         cdc::{ProductType, SystemVersionPacket, SystemVersionReplyPacket},
         cdc2::{
             file::{FileControlGroup, FileControlPacket, FileControlReplyPacket, RadioChannel},
@@ -14,22 +13,21 @@ use vex_v5_serial::{
                 SystemFlagsReplyPacket,
             },
         },
-    },
-    serial::{self, SerialConnection, SerialDevice},
+    }, serial::{self, SerialDevice, SerialError}
 };
 
 use crate::errors::CliError;
 
-pub async fn open_connection() -> Result<SerialConnection, CliError> {
+pub async fn open_connection() -> Result<GenericConnection, CliError> {
     // Find all vex devices on serial ports.
     let devices = serial::find_devices().map_err(CliError::SerialError)?;
 
     let device = match devices.len() {
         // No devices connected
-        0 => return Err(CliError::NoDevice),
+        0 => None,
 
         // Exactly one device connected. Choose that one automatically.
-        1 => devices.into_iter().next().unwrap(),
+        1 => Some(devices.into_iter().next().unwrap()),
 
         // Multiple devices connected at once. Prompt the user asking which one they want.
         _ => {
@@ -57,7 +55,7 @@ pub async fn open_connection() -> Result<SerialConnection, CliError> {
                 }
             }
 
-            Select::new(
+            Some(Select::new(
                 "Choose a device to connect to",
                 devices
                     .into_iter()
@@ -65,21 +63,49 @@ pub async fn open_connection() -> Result<SerialConnection, CliError> {
                     .collect::<Vec<_>>(),
             )
             .prompt()?
-            .inner
+            .inner)
         }
     };
 
+    if let Some(device) = device {
+        return Ok(GenericConnection::Serial(spawn_blocking(move || {
+            device
+                .connect(Duration::from_secs(5))
+                .map_err(CliError::SerialError)
+        })
+        .await
+        .unwrap()?));
+    }
+
+    let devices = bluetooth::find_devices(Duration::from_secs(10), Some(1)).await?;
+
+    // Open a connection to the device
+    let mut connection = devices[0].connect().await?;
+
+    if !connection.is_paired().await? {
+        connection.request_pairing().await?;
+
+        let pin = "5667";
+
+        let mut chars = pin.chars();
+
+        connection
+            .authenticate_pairing([
+                chars.next().unwrap().to_digit(10).unwrap() as u8,
+                chars.next().unwrap().to_digit(10).unwrap() as u8,
+                chars.next().unwrap().to_digit(10).unwrap() as u8,
+                chars.next().unwrap().to_digit(10).unwrap() as u8,
+            ])
+            .await?;
+
+        return Ok(GenericConnection::Bluetooth(connection));
+    }
+
     // Open a connection to the device.
-    spawn_blocking(move || {
-        device
-            .connect(Duration::from_secs(5))
-            .map_err(CliError::SerialError)
-    })
-    .await
-    .unwrap()
+    return Err(CliError::NoDevice)
 }
 
-async fn is_connection_wireless(connection: &mut SerialConnection) -> Result<bool, CliError> {
+async fn is_connection_wireless(connection: &mut GenericConnection) -> Result<bool, CliError> {
     let version = connection
         .handshake::<SystemVersionReplyPacket>(
             Duration::from_millis(500),
@@ -101,7 +127,7 @@ async fn is_connection_wireless(connection: &mut SerialConnection) -> Result<boo
     Ok(!tethered && controller)
 }
 
-pub async fn switch_to_download_channel(connection: &mut SerialConnection) -> Result<(), CliError> {
+pub async fn switch_to_download_channel(connection: &mut GenericConnection) -> Result<(), CliError> {
     let radio_status = connection
         .handshake::<RadioStatusReplyPacket>(Duration::from_secs(2), 3, RadioStatusPacket::new(()))
         .await?
