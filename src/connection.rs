@@ -1,5 +1,5 @@
 use core::fmt;
-use inquire::Select;
+use inquire::{CustomType, Select};
 use log::info;
 use std::time::Duration;
 use tokio::{task::spawn_blocking, time::sleep};
@@ -85,7 +85,7 @@ pub async fn open_connection() -> Result<GenericConnection, CliError> {
     if !connection.is_paired().await? {
         connection.request_pairing().await?;
 
-        let pin = "5667";
+        let pin: String = CustomType::new("PIN: ").prompt().unwrap_or_default();
 
         let mut chars = pin.chars();
 
